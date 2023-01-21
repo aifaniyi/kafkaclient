@@ -18,7 +18,7 @@ type MessageProcessor interface {
 }
 
 type Consumer interface {
-	Consume(ctx context.Context, topics []string, process []MessageProcessor, close chan struct{}) error
+	Consume(topics []string, process []MessageProcessor, close chan struct{}) error
 	CommitMessage(m *kafka.Message) error
 	Close()
 }
@@ -57,7 +57,12 @@ func NewConsumer(options *ConsumerOpts) (*ConsumerImpl, error) {
 	}, nil
 }
 
-func (c *ConsumerImpl) Consume(ctx context.Context, topics []string, messageProcessors []MessageProcessor, quit chan struct{}) error {
+func (c *ConsumerImpl) Consume(topics []string, messageProcessors []MessageProcessor,
+	quit chan struct{}) error {
+
+	if len(messageProcessors) < 1 {
+		return fmt.Errorf("at least one message processor implementation must be provided")
+	}
 
 	if err := c.consumer.SubscribeTopics(topics, nil); err != nil {
 		return err
@@ -67,7 +72,7 @@ func (c *ConsumerImpl) Consume(ctx context.Context, topics []string, messageProc
 	defer close(events)
 
 	for _, messmessageProcessor := range messageProcessors {
-		go process(ctx, messmessageProcessor, events)
+		go process(messmessageProcessor, events)
 	}
 
 	for {
@@ -112,11 +117,11 @@ func (c *ConsumerImpl) Close() {
 	c.consumer.Close()
 }
 
-func process(ctx context.Context, messageProcessor MessageProcessor, messages <-chan *kafka.Message) {
-	for msg := range messages {
-		log.Printf("worker %d received message %v", messageProcessor.ID(), msg)
+func process(messageProcessor MessageProcessor, events <-chan *kafka.Message) {
+	for event := range events {
+		log.Printf("worker %d received message %v", messageProcessor.ID(), event)
 
-		if err := messageProcessor.Execute(ctx, msg); err != nil {
+		if err := messageProcessor.Execute(context.TODO(), event); err != nil {
 			log.Printf("message processing error: %v", err.Error())
 		}
 	}

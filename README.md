@@ -48,8 +48,6 @@ func (s *SampleMessageProcessorImpl) Execute(ctx context.Context, message *kafka
 }
 
 func main() {
-	ctx := context.Background()
-
 	// create consumer
 	consumer, err := kafkaclient.NewConsumer(&kafkaclient.ConsumerOpts{
 		Brokers: "localhost:29092",
@@ -72,7 +70,7 @@ func main() {
 	defer close(quit)
 
 	// start consuming messages (blocking operation)
-	err = consumer.Consume(ctx, []string{"test_topic"}, msgProcs, quit)
+	err = consumer.Consume([]string{"test_topic"}, msgProcs, quit)
 	if err != nil {
 		log.Fatalf("error consuming messages: %v", err)
 	}

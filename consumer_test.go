@@ -98,7 +98,7 @@ func TestConsumer(t *testing.T) {
 	}()
 
 	// start consumer
-	err := consumer.Consume(ctx, []string{"test_topic"}, testMsgProcs, quit)
+	err := consumer.Consume([]string{"test_topic"}, testMsgProcs, quit)
 	if err != nil {
 		t.Fatalf("error consuming messages: %v", err)
 	}
